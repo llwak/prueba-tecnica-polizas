@@ -24,6 +24,20 @@ class PolizasApiTest {
     private TestRestTemplate http;
 
     @Test
+    void cargaLaDemostracionYConservaLaProteccionDeLaApi() {
+        var demo = http.getForEntity("/demo/index.html", String.class);
+        assertThat(demo.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(demo.getBody()).contains("Pólizas de arrendamiento", "./app.js");
+        assertThat(http.getForEntity("/demo/app.js", String.class).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(http.getForEntity("/polizas", String.class).getStatusCode())
+                .isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(http.postForEntity("/polizas/1/renovar", Map.of("ipc", 5), String.class).getStatusCode())
+                .isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(http.postForEntity("/demo/index.html", null, String.class).getStatusCode())
+                .isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
     void listaConFiltrosYConsultaRiesgos() {
         var polizas = request(HttpMethod.GET, "/polizas?tipo=INDIVIDUAL&estado=ACTIVA", null);
         assertThat(polizas.getStatusCode()).isEqualTo(HttpStatus.OK);

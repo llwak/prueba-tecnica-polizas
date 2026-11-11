@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es-CO">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#006a38">
+  <title>Gestión de pólizas de arrendamiento</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./app.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <header class="top">
+    <div class="shell top-inner">
+      <div class="identity">
+        <span class="brand"><img src="./logo.png" alt="Seguros Bolívar" width="60" height="58"></span>
+        <div><strong>Gestión de pólizas</strong><span>Prueba técnica · Desarrollo TI</span></div>
+      </div>
+      <div class="top-actions">
+        <span id="connection" class="connection" data-state="loading" role="status">Conectando</span>
+        <details class="credentials">
+          <summary>Clave de API</summary>
+          <form id="key-form" class="key-form">
+            <label for="api-key">Encabezado x-api-key</label>
+            <input id="api-key" type="password" value="123456" required autocomplete="off">
+            <button class="button primary" type="submit">Conectar</button>
+          </form>
+        </details>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="hero" aria-labelledby="page-title">
+      <div class="hero-content">
+        <h1 id="page-title">Pólizas de arrendamiento</h1>
+        <p>Consulta pólizas, renueva vigencias y administra los riesgos de cada inmueble.</p>
+      </div>
+      <div class="hero-decoration" aria-hidden="true"></div>
+    </section>
+
+    <section id="notice" class="notice" aria-live="polite" hidden>
+      <strong id="notice-title"></strong>
+      <p id="notice-message"></p>
+    </section>
+
+    <div class="workspace">
+      <section class="panel" aria-labelledby="list-title">
+        <div class="panel-head">
+          <div>
+            <h2 id="list-title">Pólizas</h2>
+            <p id="policy-count" aria-live="polite">Cargando pólizas…</p>
+          </div>
+          <button id="refresh" class="button secondary small" type="button">Actualizar</button>
+        </div>
+        <div class="filters">
+          <label for="filter-type">Tipo
+            <select id="filter-type">
+              <option value="">Todos los tipos</option>
+              <option value="INDIVIDUAL">Individual</option>
+              <option value="COLECTIVA">Colectiva</option>
+            </select>
+          </label>
+          <label for="filter-status">Estado
+            <select id="filter-status">
+              <option value="">Todos los estados</option>
+              <option value="ACTIVA">Activa</option>
+              <option value="RENOVADA">Renovada</option>
+              <option value="CANCELADA">Cancelada</option>
+            </select>
+          </label>
+        </div>
+        <div class="table-container">
+          <table class="policies">
+            <thead><tr><th scope="col">Póliza</th><th scope="col">Tipo</th><th scope="col">Estado</th><th scope="col">Canon mensual</th></tr></thead>
+            <tbody id="policies"></tbody>
+          </table>
+          <p id="list-empty" class="empty">Cargando pólizas…</p>
+        </div>
+      </section>
+
+      <section class="panel detail" aria-labelledby="detail-title">
+        <div class="panel-head">
+          <div><h2 id="detail-title">Detalle de póliza</h2><p id="detail-type"></p></div>
+          <span id="detail-status" class="badge" hidden></span>
+        </div>
+        <p id="detail-empty" class="empty">Selecciona una póliza para ver sus datos y riesgos.</p>
+        <div id="detail-body" hidden>
+          <dl class="figures">
+            <div><dt>Canon mensual</dt><dd id="rent"></dd></div>
+            <div><dt>Prima</dt><dd id="premium"></dd></div>
+          </dl>
+          <div class="term">
+            <span>Vigencia</span><strong id="term"></strong>
+          </div>
+          <div class="policy-actions">
+            <button id="renew" class="button primary" type="button">Renovar póliza</button>
+            <button id="cancel" class="button secondary danger-text" type="button">Cancelar póliza</button>
+          </div>
+          <section class="risks" aria-labelledby="risk-title">
+            <div class="risk-head">
+              <div><h3 id="risk-title">Riesgos</h3><p id="risk-count" aria-live="polite"></p></div>
+              <button id="add-risk" class="button secondary small" type="button">Agregar riesgo</button>
+            </div>
+            <ul id="risks" class="risk-list"></ul>
+          </section>
+        </div>
+      </section>
+    </div>
+
+    <details id="trace" class="trace" hidden>
+      <summary><span>Última operación</span><span id="trace-label"></span></summary>
+      <pre id="trace-body"></pre>
+    </details>
+
+    <footer>Datos de ejemplo. Se reinician al reiniciar la aplicación.</footer>
+  </main>
+
+  <dialog id="operation" aria-labelledby="operation-title">
+    <form id="operation-form">
+      <h2 id="operation-title"></h2>
+      <p id="operation-copy"></p>
+      <div id="operation-input" class="operation-input" hidden>
+        <label id="operation-label" for="operation-value"></label>
+        <input id="operation-value" autocomplete="off">
+      </div>
+      <p id="operation-error" class="form-error" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button id="close-operation" class="button secondary" type="button">Volver</button>
+        <button id="submit-operation" class="button primary" type="submit"></button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

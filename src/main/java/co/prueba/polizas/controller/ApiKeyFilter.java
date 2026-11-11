@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -15,10 +16,20 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
 public class ApiKeyFilter extends OncePerRequestFilter {
+    private static final Set<String> DEMO_FILES = Set.of(
+            "/demo/index.html", "/demo/app.css", "/demo/app.js", "/demo/logo.png");
+
     private final byte[] expectedKey;
 
     public ApiKeyFilter(@Value("${app.api-key}") String expectedKey) {
         this.expectedKey = expectedKey.getBytes(StandardCharsets.UTF_8);
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI().substring(request.getContextPath().length());
+        return ("GET".equals(request.getMethod()) || "HEAD".equals(request.getMethod()))
+                && DEMO_FILES.contains(path);
     }
 
     @Override

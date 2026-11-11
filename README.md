@@ -17,6 +17,22 @@ pólizas de ejemplo en cada arranque: la póliza 1 es individual y tiene un ries
 La póliza 2 es colectiva y tiene dos riesgos. Todos los endpoints, incluido el
 mock, requieren el encabezado `x-api-key: 123456`.
 
+## Demostración web
+
+Con la aplicación encendida, abre [la demo local](http://localhost:8080/demo/index.html).
+La pantalla se sirve desde Spring Boot y consume los mismos endpoints de la API.
+Si configuras otra clave con `POLIZAS_API_KEY`, indícala en el menú **Clave de API**.
+
+1. Filtra por tipo y estado y abre la póliza individual **#1**.
+2. Renueva con **5,25 %** de IPC. Verás el nuevo canon de **$1.052.500**,
+   la prima de **$12.630.000** y el estado **Renovada**.
+3. Selecciona la colectiva **#2**, agrega un inmueble y cancela uno de sus riesgos.
+4. Cancela la colectiva y comprueba que todos sus riesgos quedan cancelados.
+
+**Última operación** muestra la ruta, el estado HTTP y el JSON de la respuesta.
+Cada cambio aceptado queda registrado en la consola del simulador CORE.
+Reinicia la aplicación para restaurar los datos de ejemplo.
+
 ## Operaciones
 
 | Método y ruta | Entrada | Resultado |
