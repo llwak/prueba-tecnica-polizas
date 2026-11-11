@@ -8,12 +8,17 @@ const ui = Object.fromEntries([
   'risk-count', 'risks', 'notice', 'notice-title', 'notice-message', 'trace', 'trace-label',
   'trace-body', 'operation', 'operation-form', 'operation-title', 'operation-copy',
   'operation-input', 'operation-label', 'operation-value', 'operation-error',
-  'close-operation', 'submit-operation'
+  'close-operation', 'submit-operation', 'overview-filters', 'overview-message', 'overview-rent',
+  'dashboard-view', 'policies-view', 'dashboard-link', 'policies-link', 'page-title', 'refresh-dashboard',
+  'dashboard-charts', 'status-donut', 'donut-total', 'status-legend', 'type-chart',
+  'quarter-chart', 'quarter-empty', 'rent-chart',
+  'pagination', 'page-range', 'previous-page', 'next-page'
 ].map(id => [id, byId(id)]));
 
 const currency = new Intl.NumberFormat('es-CO', {
   style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 2
 });
+const percent = new Intl.NumberFormat('es-CO', { style: 'percent', maximumFractionDigits: 1 });
 const calendar = new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeZone: 'UTC' });
 const apiRoot = new URL('../', window.location.href);
 const types = { INDIVIDUAL: 'Individual', COLECTIVA: 'Colectiva' };
@@ -21,15 +26,24 @@ const statuses = {
   ACTIVA: 'Activa', ACTIVO: 'Activo', RENOVADA: 'Renovada',
   CANCELADA: 'Cancelada', CANCELADO: 'Cancelado'
 };
+const series = [
+  { state: 'ACTIVA', label: 'Activas', color: 'var(--chart-active)' },
+  { state: 'RENOVADA', label: 'Renovadas', color: 'var(--chart-renewed)' },
+  { state: 'CANCELADA', label: 'Canceladas', color: 'var(--chart-cancelled)' }
+];
+const overviewCards = [...ui['overview-filters'].querySelectorAll('button')];
+const pageSize = 6;
 
 let apiKey = ui['api-key'].value;
 let policies = [];
 let selected = null;
 let risks = [];
 let listRequest = 0;
+let overviewRequest = 0;
 let riskRequest = 0;
 let operation = null;
 let busy = false;
+let pageNumber = 1;
 
 function node(tag, className, text) {
   const element = document.createElement(tag);
@@ -78,6 +92,151 @@ function errorMessage(error) {
   return 'No se obtuvo respuesta. Comprueba la conexión y consulta el estado antes de reintentar.';
 }
 
+function renderView() {
+  const showPolicies = window.location.hash === '#polizas';
+  ui['dashboard-view'].hidden = showPolicies;
+  ui['policies-view'].hidden = !showPolicies;
+  ui['dashboard-link'].removeAttribute('aria-current');
+  ui['policies-link'].removeAttribute('aria-current');
+  ui[showPolicies ? 'policies-link' : 'dashboard-link'].setAttribute('aria-current', 'page');
+}
+
+function stateCounts() {
+  return { ACTIVA: 0, RENOVADA: 0, CANCELADA: 0 };
+}
+
+function summarizePortfolio(policies) {
+  const counts = stateCounts();
+  const byType = {
+    INDIVIDUAL: { label: 'Individuales', total: 0, counts: stateCounts(), rent: 0 },
+    COLECTIVA: { label: 'Colectivas', total: 0, counts: stateCounts(), rent: 0 }
+  };
+  const quarters = new Map();
+
+  for (const policy of policies) {
+    const type = byType[policy.tipo];
+    counts[policy.estado]++;
+    type.counts[policy.estado]++;
+    type.total++;
+    if (policy.estado === 'CANCELADA') continue;
+
+    type.rent += Math.round(policy.canonMensual * 100);
+    const [year, month] = policy.finVigencia.split('-').map(Number);
+    const quarter = year * 4 + Math.floor((month - 1) / 3);
+    quarters.set(quarter, (quarters.get(quarter) ?? 0) + 1);
+  }
+
+  return { counts, types: Object.values(byType), quarters: [...quarters].sort(([a], [b]) => a - b) };
+}
+
+function renderStatusChart(counts, total) {
+  let offset = 0;
+  const stops = [];
+  const rows = series.map(({ state, label, color }) => {
+    const share = total ? counts[state] / total : 0;
+    const end = offset + share * 100;
+    if (share) stops.push(`${color} ${offset}% ${end}%`);
+    offset = end;
+
+    const row = node('li');
+    const name = node('span', '', label);
+    name.dataset.status = state;
+    row.append(name, node('strong', '', counts[state]), node('span', 'status-percent', percent.format(share)));
+    return row;
+  });
+
+  ui['status-donut'].style.background = stops.length ? `conic-gradient(${stops.join(', ')})` : '';
+  ui['donut-total'].textContent = total;
+  ui['status-legend'].replaceChildren(...rows);
+}
+
+function horizontalRow(label, value) {
+  const row = node('li');
+  const caption = node('div', 'chart-row-label');
+  caption.append(node('span', '', label), node('strong', '', value));
+  const track = node('div', 'chart-track');
+  row.append(caption, track);
+  return { row, track };
+}
+
+function renderTypeChart(typeSummary) {
+  const max = Math.max(1, ...typeSummary.map(type => type.total));
+  ui['type-chart'].replaceChildren(...typeSummary.map(type => {
+    const { row, track } = horizontalRow(type.label, type.total);
+    track.setAttribute('role', 'img');
+    track.setAttribute('aria-label', series.map(({ state, label }) => `${label}: ${type.counts[state]}`).join(', '));
+    for (const { state, label } of series) {
+      const count = type.counts[state];
+      const bar = node('span');
+      bar.dataset.status = state;
+      bar.style.width = `${count / max * 100}%`;
+      bar.title = `${label}: ${count}`;
+      track.append(bar);
+    }
+    return row;
+  }));
+}
+
+function renderQuarterChart(quarters) {
+  ui['quarter-empty'].hidden = quarters.length > 0;
+  ui['quarter-chart'].style.setProperty('--quarters', Math.max(1, quarters.length));
+  const max = Math.max(1, ...quarters.map(([, count]) => count));
+  ui['quarter-chart'].replaceChildren(...quarters.map(([quarter, count]) => {
+    const label = `T${quarter % 4 + 1} ${Math.floor(quarter / 4)}`;
+    const row = node('li');
+    const track = node('div', 'quarter-track');
+    track.style.setProperty('--bar-height', `${count / max * 80}%`);
+    const bar = node('span', 'quarter-bar');
+    bar.setAttribute('aria-hidden', 'true');
+    track.append(bar, node('strong', 'quarter-count', count));
+    row.append(track, node('span', 'quarter-label', label));
+    return row;
+  }));
+}
+
+function renderRentChart(typeSummary) {
+  const total = typeSummary.reduce((sum, type) => sum + type.rent, 0);
+  ui['overview-rent'].textContent = currency.format(total / 100);
+  ui['rent-chart'].replaceChildren(...typeSummary.map((type, index) => {
+    const share = total ? type.rent / total : 0;
+    const { row, track } = horizontalRow(type.label, `${currency.format(type.rent / 100)} · ${percent.format(share)}`);
+    track.setAttribute('aria-hidden', 'true');
+    const bar = node('span', index === 1 ? 'collective-amount' : '');
+    bar.style.width = `${share * 100}%`;
+    track.append(bar);
+    return row;
+  }));
+}
+
+function renderOverview(portfolio) {
+  const summary = portfolio ? summarizePortfolio(portfolio) : null;
+  for (const card of overviewCards) {
+    const status = card.dataset.overviewStatus;
+    card.querySelector('strong').textContent = status ? (summary?.counts[status] ?? '—') : (portfolio?.length ?? '—');
+    card.disabled = !summary;
+  }
+  ui['dashboard-charts'].hidden = !summary;
+  ui['overview-message'].textContent = summary ? '' : 'Resumen temporalmente no disponible.';
+  if (!summary) return;
+
+  renderStatusChart(summary.counts, portfolio.length);
+  renderTypeChart(summary.types);
+  renderQuarterChart(summary.quarters);
+  renderRentChart(summary.types);
+}
+
+async function refreshOverview() {
+  const request = ++overviewRequest;
+  let portfolio = null;
+  try {
+    const { data } = await api('/polizas');
+    portfolio = data;
+  } catch {
+    // Render the unavailable state if the unfiltered request fails.
+  }
+  if (request === overviewRequest) renderOverview(portfolio);
+}
+
 function updateSelectedRow() {
   for (const button of ui.policies.querySelectorAll('button[data-id]')) {
     const active = Number(button.dataset.id) === selected?.id;
@@ -87,7 +246,9 @@ function updateSelectedRow() {
 }
 
 function renderPolicies() {
-  const rows = policies.map(policy => {
+  const start = (pageNumber - 1) * pageSize;
+  const end = Math.min(start + pageSize, policies.length);
+  const rows = policies.slice(start, end).map(policy => {
     const row = node('tr');
     const choose = node('button', 'policy-link', `#${policy.id}`);
     choose.type = 'button';
@@ -109,34 +270,56 @@ function renderPolicies() {
   ui['policy-count'].textContent = policies.length === 1 ? '1 póliza' : `${policies.length} pólizas`;
   ui['list-empty'].hidden = rows.length > 0;
   ui['list-empty'].textContent = 'No hay pólizas que coincidan con los filtros.';
+  ui.pagination.hidden = policies.length <= pageSize;
+  ui['page-range'].textContent = policies.length ? `${start + 1}–${end} de ${policies.length}` : '';
+  ui['previous-page'].disabled = start === 0;
+  ui['next-page'].disabled = end === policies.length;
 }
 
-async function loadPolicies(preferredId = selected?.id) {
+function changePage(offset) {
+  pageNumber += offset;
+  renderPolicies();
+  selectPolicy(policies[(pageNumber - 1) * pageSize]);
+}
+
+async function loadPolicies(preferredId = selected?.id, updateOverview = true) {
   const current = ++listRequest;
   const filters = new URLSearchParams();
   if (ui['filter-type'].value) filters.set('tipo', ui['filter-type'].value);
   if (ui['filter-status'].value) filters.set('estado', ui['filter-status'].value);
   const path = filters.size ? `/polizas?${filters}` : '/polizas';
+  const unfilteredRequest = filters.size ? null : ++overviewRequest;
+  const pendingOverview = filters.size && updateOverview ? refreshOverview() : null;
   ui.refresh.disabled = true;
+  ui['refresh-dashboard'].disabled = true;
   connection('loading', 'Consultando API');
 
   try {
     const { data } = await api(path);
+    if (unfilteredRequest === overviewRequest) renderOverview(data);
     if (current !== listRequest) return;
     policies = data;
+    const preferredIndex = policies.findIndex(policy => policy.id === preferredId);
+    pageNumber = Math.floor(Math.max(preferredIndex, 0) / pageSize) + 1;
     renderPolicies();
     connection('ready', 'API conectada');
-    await selectPolicy(policies.find(policy => policy.id === preferredId) ?? policies[0] ?? null);
+    await selectPolicy(policies[preferredIndex] ?? policies[0] ?? null);
   } catch (error) {
+    if (unfilteredRequest === overviewRequest) renderOverview(null);
     if (current !== listRequest) return;
     policies = [];
+    pageNumber = 1;
     renderPolicies();
     await selectPolicy(null);
     ui['list-empty'].textContent = 'No se pudieron cargar las pólizas.';
     connection('error', error.status === 401 ? 'Clave inválida' : 'API sin respuesta');
     notify('error', 'Error al consultar pólizas', errorMessage(error));
   } finally {
-    if (current === listRequest) ui.refresh.disabled = false;
+    await pendingOverview;
+    if (current === listRequest) {
+      ui.refresh.disabled = false;
+      ui['refresh-dashboard'].disabled = false;
+    }
   }
 }
 
@@ -339,7 +522,26 @@ ui.refresh.addEventListener('click', () => {
   ui.notice.hidden = true;
   loadPolicies();
 });
-ui['filter-type'].addEventListener('change', () => loadPolicies());
-ui['filter-status'].addEventListener('change', () => loadPolicies());
+ui['refresh-dashboard'].addEventListener('click', () => loadPolicies());
+ui['filter-type'].addEventListener('change', () => loadPolicies(null, false));
+ui['filter-status'].addEventListener('change', () => loadPolicies(null, false));
+ui['previous-page'].addEventListener('click', () => changePage(-1));
+ui['next-page'].addEventListener('click', () => changePage(1));
 
+for (const card of overviewCards) {
+  card.addEventListener('click', () => {
+    ui['filter-type'].value = '';
+    ui['filter-status'].value = card.dataset.overviewStatus;
+    window.location.hash = 'polizas';
+    renderView();
+    ui['page-title'].focus({ preventScroll: true });
+    loadPolicies(null, false);
+  });
+}
+
+window.addEventListener('hashchange', () => {
+  renderView();
+  window.scrollTo(0, 0);
+});
+renderView();
 loadPolicies();

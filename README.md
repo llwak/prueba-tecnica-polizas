@@ -12,22 +12,35 @@ mvn clean verify
 mvn spring-boot:run
 ```
 
-La API escucha en `http://localhost:8080`. La base H2 en memoria se inicializa con
-pólizas de ejemplo en cada arranque: la póliza 1 es individual y tiene un riesgo.
-La póliza 2 es colectiva y tiene dos riesgos. Todos los endpoints, incluido el
-mock, requieren el encabezado `x-api-key: 123456`.
+La API escucha en `http://localhost:8080`. La base H2 en memoria carga **36 pólizas
+y 71 riesgos ficticios** en cada arranque. Los endpoints de la API y el simulador
+del CORE requieren el encabezado `x-api-key: 123456` con la configuración de ejemplo.
 
 ## Demostración web
 
-Con la aplicación encendida, abre [la demo local](http://localhost:8080/demo/index.html).
-La pantalla se sirve desde Spring Boot y consume los mismos endpoints de la API.
+Con la aplicación encendida, abre el [dashboard de cartera](http://localhost:8080/demo/index.html#dashboard).
+Spring Boot sirve la interfaz y el navegador consulta la API del mismo proyecto.
 Si configuras otra clave con `POLIZAS_API_KEY`, indícala en el menú **Clave de API**.
 
-1. Filtra por tipo y estado y abre la póliza individual **#1**.
-2. Renueva con **5,25 %** de IPC. Verás el nuevo canon de **$1.052.500**,
-   la prima de **$12.630.000** y el estado **Renovada**.
-3. Selecciona la colectiva **#2**, agrega un inmueble y cancela uno de sus riesgos.
-4. Cancela la colectiva y comprueba que todos sus riesgos quedan cancelados.
+- **Dashboard** presenta cuatro gráficas de cartera. Muestra las pólizas por
+  estado y tipo, los vencimientos por trimestre y el canon mensual por tipo.
+  Los gráficos de vencimientos y canon incluyen las pólizas activas y renovadas.
+  Pulsa una tarjeta de estado para abrir el listado con ese filtro.
+- **Pólizas** permite filtrar por tipo y estado, navegar por páginas, consultar
+  el detalle y gestionar renovaciones, cancelaciones y riesgos.
+
+### Recorrido de prueba
+
+1. En **Dashboard**, pulsa **Renovadas** para abrir las 10 pólizas que tienen ese
+   estado en los datos iniciales.
+2. Limpia el filtro de estado y abre la póliza individual **#1**. Renueva con
+   **5,25 %** de IPC y comprueba el canon de **$1.052.500**, la prima de
+   **$12.630.000** y el estado **Renovada**.
+3. Vuelve al **Dashboard**. La cantidad de renovadas pasa de 10 a 11 y el canon
+   mensual de la cartera sube **$52.500**.
+4. En **Pólizas**, selecciona la colectiva **#2**, agrega el inmueble
+   `APTO-203` y cancela ese riesgo. Luego cancela la póliza y verifica que
+   todos sus riesgos queden cancelados.
 
 **Última operación** muestra la ruta, el estado HTTP y el JSON de la respuesta.
 Cada cambio aceptado queda registrado en la consola del simulador CORE.

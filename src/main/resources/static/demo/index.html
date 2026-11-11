@@ -31,87 +31,162 @@
   </header>
 
   <main class="shell">
-    <section class="hero" aria-labelledby="page-title">
-      <div class="hero-content">
-        <h1 id="page-title">Pólizas de arrendamiento</h1>
-        <p>Consulta pólizas, renueva vigencias y administra los riesgos de cada inmueble.</p>
+    <nav class="view-navigation" aria-label="Secciones">
+      <a id="dashboard-link" href="#dashboard" aria-current="page">Dashboard</a>
+      <a id="policies-link" href="#polizas">Pólizas</a>
+    </nav>
+
+    <section id="dashboard-view" aria-labelledby="dashboard-title">
+      <div class="hero dashboard-hero">
+        <div class="hero-content">
+          <h1 id="dashboard-title">Dashboard de cartera</h1>
+          <p>Indicadores de pólizas de arrendamiento, vigencias y canon mensual.</p>
+        </div>
+        <button id="refresh-dashboard" class="button dashboard-refresh" type="button">Actualizar datos</button>
+        <div class="hero-decoration" aria-hidden="true"></div>
       </div>
-      <div class="hero-decoration" aria-hidden="true"></div>
-    </section>
-
-    <section id="notice" class="notice" aria-live="polite" hidden>
-      <strong id="notice-title"></strong>
-      <p id="notice-message"></p>
-    </section>
-
-    <div class="workspace">
-      <section class="panel" aria-labelledby="list-title">
-        <div class="panel-head">
-          <div>
-            <h2 id="list-title">Pólizas</h2>
-            <p id="policy-count" aria-live="polite">Cargando pólizas…</p>
-          </div>
-          <button id="refresh" class="button secondary small" type="button">Actualizar</button>
-        </div>
-        <div class="filters">
-          <label for="filter-type">Tipo
-            <select id="filter-type">
-              <option value="">Todos los tipos</option>
-              <option value="INDIVIDUAL">Individual</option>
-              <option value="COLECTIVA">Colectiva</option>
-            </select>
-          </label>
-          <label for="filter-status">Estado
-            <select id="filter-status">
-              <option value="">Todos los estados</option>
-              <option value="ACTIVA">Activa</option>
-              <option value="RENOVADA">Renovada</option>
-              <option value="CANCELADA">Cancelada</option>
-            </select>
-          </label>
-        </div>
-        <div class="table-container">
-          <table class="policies">
-            <thead><tr><th scope="col">Póliza</th><th scope="col">Tipo</th><th scope="col">Estado</th><th scope="col">Canon mensual</th></tr></thead>
-            <tbody id="policies"></tbody>
-          </table>
-          <p id="list-empty" class="empty">Cargando pólizas…</p>
-        </div>
-      </section>
-
-      <section class="panel detail" aria-labelledby="detail-title">
-        <div class="panel-head">
-          <div><h2 id="detail-title">Detalle de póliza</h2><p id="detail-type"></p></div>
-          <span id="detail-status" class="badge" hidden></span>
-        </div>
-        <p id="detail-empty" class="empty">Selecciona una póliza para ver sus datos y riesgos.</p>
-        <div id="detail-body" hidden>
-          <dl class="figures">
-            <div><dt>Canon mensual</dt><dd id="rent"></dd></div>
-            <div><dt>Prima</dt><dd id="premium"></dd></div>
-          </dl>
-          <div class="term">
-            <span>Vigencia</span><strong id="term"></strong>
-          </div>
-          <div class="policy-actions">
-            <button id="renew" class="button primary" type="button">Renovar póliza</button>
-            <button id="cancel" class="button secondary danger-text" type="button">Cancelar póliza</button>
-          </div>
-          <section class="risks" aria-labelledby="risk-title">
-            <div class="risk-head">
-              <div><h3 id="risk-title">Riesgos</h3><p id="risk-count" aria-live="polite"></p></div>
-              <button id="add-risk" class="button secondary small" type="button">Agregar riesgo</button>
+      <p id="overview-message" class="dashboard-message" aria-live="polite">Cargando datos de cartera…</p>
+      <div id="overview-filters" class="overview-filters">
+        <button class="overview-card" type="button" data-overview-status="" disabled>
+          <span>Total de pólizas</span><strong>—</strong>
+        </button>
+        <button class="overview-card" type="button" data-overview-status="ACTIVA" disabled>
+          <span>Activas</span><strong>—</strong>
+        </button>
+        <button class="overview-card" type="button" data-overview-status="RENOVADA" disabled>
+          <span>Renovadas</span><strong>—</strong>
+        </button>
+        <button class="overview-card" type="button" data-overview-status="CANCELADA" disabled>
+          <span>Canceladas</span><strong>—</strong>
+        </button>
+      </div>
+      <div id="dashboard-charts" class="dashboard-charts" hidden>
+        <article class="panel chart-panel" aria-labelledby="status-chart-title">
+          <h2 id="status-chart-title">Pólizas por estado</h2>
+          <div class="status-chart">
+            <div id="status-donut" class="status-donut" aria-hidden="true">
+              <div class="donut-center"><strong id="donut-total"></strong><span>Pólizas</span></div>
             </div>
-            <ul id="risks" class="risk-list"></ul>
-          </section>
-        </div>
-      </section>
-    </div>
+            <ul id="status-legend" class="status-legend"></ul>
+          </div>
+        </article>
+        <article class="panel chart-panel" aria-labelledby="type-chart-title">
+          <h2 id="type-chart-title">Cartera por tipo</h2>
+          <p class="chart-caption">Individuales y colectivas, desglosadas por estado.</p>
+          <ul id="type-chart" class="horizontal-chart"></ul>
+          <p class="chart-key">
+            <span data-status="ACTIVA">Activas</span>
+            <span data-status="RENOVADA">Renovadas</span>
+            <span data-status="CANCELADA">Canceladas</span>
+          </p>
+        </article>
+        <article class="panel chart-panel" aria-labelledby="quarter-chart-title">
+          <h2 id="quarter-chart-title">Vencimientos por trimestre</h2>
+          <p class="chart-caption">Fin de vigencia de pólizas activas y renovadas.</p>
+          <p id="quarter-empty" class="chart-empty" hidden>Sin vencimientos registrados.</p>
+          <div class="quarter-scroll">
+            <ul id="quarter-chart" class="quarter-chart" aria-label="Pólizas que vencen en cada trimestre"></ul>
+          </div>
+        </article>
+        <article class="panel chart-panel" aria-labelledby="rent-chart-title">
+          <h2 id="rent-chart-title">Canon mensual por tipo</h2>
+          <p class="chart-caption">Suma del canon de pólizas activas y renovadas.</p>
+          <strong id="overview-rent" class="chart-amount"></strong>
+          <ul id="rent-chart" class="horizontal-chart rent-chart"></ul>
+        </article>
+      </div>
+    </section>
 
-    <details id="trace" class="trace" hidden>
-      <summary><span>Última operación</span><span id="trace-label"></span></summary>
-      <pre id="trace-body"></pre>
-    </details>
+    <section id="policies-view" aria-labelledby="page-title" hidden>
+      <div class="hero policies-hero">
+        <div class="hero-content">
+          <h1 id="page-title" tabindex="-1">Pólizas de arrendamiento</h1>
+          <p>Consulta pólizas, renueva vigencias y administra los riesgos de cada inmueble.</p>
+        </div>
+        <div class="hero-decoration" aria-hidden="true"></div>
+      </div>
+
+      <section id="notice" class="notice" aria-live="polite" hidden>
+        <strong id="notice-title"></strong>
+        <p id="notice-message"></p>
+      </section>
+
+      <div class="workspace">
+        <section class="panel" aria-labelledby="list-title">
+          <div class="panel-head">
+            <div>
+              <h2 id="list-title">Pólizas</h2>
+              <p id="policy-count" aria-live="polite">Cargando pólizas…</p>
+            </div>
+            <button id="refresh" class="button secondary small" type="button">Actualizar</button>
+          </div>
+          <div class="filters">
+            <label for="filter-type">Tipo
+              <select id="filter-type">
+                <option value="">Todos los tipos</option>
+                <option value="INDIVIDUAL">Individual</option>
+                <option value="COLECTIVA">Colectiva</option>
+              </select>
+            </label>
+            <label for="filter-status">Estado
+              <select id="filter-status">
+                <option value="">Todos los estados</option>
+                <option value="ACTIVA">Activa</option>
+                <option value="RENOVADA">Renovada</option>
+                <option value="CANCELADA">Cancelada</option>
+              </select>
+            </label>
+          </div>
+          <div class="table-container">
+            <table class="policies">
+              <thead><tr><th scope="col">Póliza</th><th scope="col">Tipo</th><th scope="col">Estado</th><th scope="col">Canon mensual</th></tr></thead>
+              <tbody id="policies"></tbody>
+            </table>
+            <p id="list-empty" class="empty">Cargando pólizas…</p>
+          </div>
+          <nav id="pagination" class="pagination" aria-label="Páginas de pólizas" hidden>
+            <span id="page-range" aria-live="polite"></span>
+            <div>
+              <button id="previous-page" class="button secondary small" type="button">Anterior</button>
+              <button id="next-page" class="button secondary small" type="button">Siguiente</button>
+            </div>
+          </nav>
+        </section>
+
+        <section class="panel detail" aria-labelledby="detail-title">
+          <div class="panel-head">
+            <div><h2 id="detail-title">Detalle de póliza</h2><p id="detail-type"></p></div>
+            <span id="detail-status" class="badge" hidden></span>
+          </div>
+          <p id="detail-empty" class="empty">Selecciona una póliza para ver sus datos y riesgos.</p>
+          <div id="detail-body" hidden>
+            <dl class="figures">
+              <div><dt>Canon mensual</dt><dd id="rent"></dd></div>
+              <div><dt>Prima</dt><dd id="premium"></dd></div>
+            </dl>
+            <div class="term">
+              <span>Vigencia</span><strong id="term"></strong>
+            </div>
+            <div class="policy-actions">
+              <button id="renew" class="button primary" type="button">Renovar póliza</button>
+              <button id="cancel" class="button secondary danger-text" type="button">Cancelar póliza</button>
+            </div>
+            <section class="risks" aria-labelledby="risk-title">
+              <div class="risk-head">
+                <div><h3 id="risk-title">Riesgos</h3><p id="risk-count" aria-live="polite"></p></div>
+                <button id="add-risk" class="button secondary small" type="button">Agregar riesgo</button>
+              </div>
+              <ul id="risks" class="risk-list"></ul>
+            </section>
+          </div>
+        </section>
+      </div>
+
+      <details id="trace" class="trace" hidden>
+        <summary><span>Última operación</span><span id="trace-label"></span></summary>
+        <pre id="trace-body"></pre>
+      </details>
+    </section>
 
     <footer>Datos de ejemplo. Se reinician al reiniciar la aplicación.</footer>
   </main>
