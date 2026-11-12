@@ -18,21 +18,23 @@ del CORE requieren el encabezado `x-api-key: 123456` con la configuración de ej
 
 ## Demostración web
 
-Con la aplicación encendida, abre el [dashboard de cartera](http://localhost:8080/demo/index.html#dashboard).
+Con la aplicación encendida, abre la [demo de pólizas](http://localhost:8080/demo/index.html).
 Spring Boot sirve la interfaz y el navegador consulta la API del mismo proyecto.
-Si configuras otra clave con `POLIZAS_API_KEY`, indícala en el menú **Clave de API**.
+La demo usa la clave de ejemplo. Si configuras otra con `POLIZAS_API_KEY`,
+el menú **Clave de API** aparece cuando la API rechaza la clave. Ingresa la clave
+configurada y pulsa **Conectar**.
 
+- **Pólizas** es la pantalla inicial. Permite filtrar por tipo y estado, navegar
+  por páginas, consultar el detalle y gestionar renovaciones, cancelaciones y riesgos.
 - **Dashboard** presenta cuatro gráficas de cartera. Muestra las pólizas por
   estado y tipo, los vencimientos por trimestre y el canon mensual por tipo.
   Los gráficos de vencimientos y canon incluyen las pólizas activas y renovadas.
   Pulsa una tarjeta de estado para abrir el listado con ese filtro.
-- **Pólizas** permite filtrar por tipo y estado, navegar por páginas, consultar
-  el detalle y gestionar renovaciones, cancelaciones y riesgos.
 
 ### Recorrido de prueba
 
-1. En **Dashboard**, pulsa **Renovadas** para abrir las 10 pólizas que tienen ese
-   estado en los datos iniciales.
+1. Desde **Pólizas**, abre **Dashboard** y pulsa **Renovadas** para ver las
+   10 pólizas que tienen ese estado en los datos iniciales.
 2. Limpia el filtro de estado y abre la póliza individual **#1**. Renueva con
    **5,25 %** de IPC y comprueba el canon de **$1.052.500**, la prima de
    **$12.630.000** y el estado **Renovada**.

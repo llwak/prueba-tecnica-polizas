@@ -18,7 +18,7 @@
       </div>
       <div class="top-actions">
         <span id="connection" class="connection" data-state="loading" role="status">Conectando</span>
-        <details class="credentials">
+        <details id="credentials" class="credentials" hidden>
           <summary>Clave de API</summary>
           <form id="key-form" class="key-form">
             <label for="api-key">Encabezado x-api-key</label>
@@ -32,11 +32,11 @@
 
   <main class="shell">
     <nav class="view-navigation" aria-label="Secciones">
-      <a id="dashboard-link" href="#dashboard" aria-current="page">Dashboard</a>
-      <a id="policies-link" href="#polizas">Pólizas</a>
+      <a id="policies-link" href="#polizas" aria-current="page">Pólizas</a>
+      <a id="dashboard-link" href="#dashboard">Dashboard</a>
     </nav>
 
-    <section id="dashboard-view" aria-labelledby="dashboard-title">
+    <section id="dashboard-view" aria-labelledby="dashboard-title" hidden>
       <div class="hero dashboard-hero">
         <div class="hero-content">
           <h1 id="dashboard-title">Dashboard de cartera</h1>
@@ -97,7 +97,7 @@
       </div>
     </section>
 
-    <section id="policies-view" aria-labelledby="page-title" hidden>
+    <section id="policies-view" aria-labelledby="page-title">
       <div class="hero policies-hero">
         <div class="hero-content">
           <h1 id="page-title" tabindex="-1">Pólizas de arrendamiento</h1>

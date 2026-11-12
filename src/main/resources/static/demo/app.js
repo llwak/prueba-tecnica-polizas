@@ -2,7 +2,7 @@
 
 const byId = id => document.getElementById(id);
 const ui = Object.fromEntries([
-  'connection', 'key-form', 'api-key', 'policy-count', 'refresh', 'filter-type',
+  'connection', 'credentials', 'key-form', 'api-key', 'policy-count', 'refresh', 'filter-type',
   'filter-status', 'policies', 'list-empty', 'detail-title', 'detail-type', 'detail-status',
   'detail-empty', 'detail-body', 'rent', 'premium', 'term', 'renew', 'cancel', 'add-risk',
   'risk-count', 'risks', 'notice', 'notice-title', 'notice-message', 'trace', 'trace-label',
@@ -70,7 +70,8 @@ function notify(state, title, message) {
 }
 
 async function api(path, method = 'GET', body) {
-  const headers = { 'x-api-key': apiKey, Accept: 'application/json' };
+  const requestKey = apiKey;
+  const headers = { 'x-api-key': requestKey, Accept: 'application/json' };
   const options = { method, headers, signal: AbortSignal.timeout(8000) };
   if (body !== undefined) {
     headers['Content-Type'] = 'application/json';
@@ -79,6 +80,10 @@ async function api(path, method = 'GET', body) {
   const response = await fetch(new URL(path.slice(1), apiRoot), options);
   const data = await response.json().catch(() => null);
   if (!response.ok) {
+    if (response.status === 401 && requestKey === apiKey) {
+      ui.credentials.hidden = false;
+      connection('error', 'Clave inválida');
+    }
     throw Object.assign(new Error(data?.detail ?? 'La API no pudo completar la solicitud.'), {
       status: response.status, data
     });
@@ -93,12 +98,12 @@ function errorMessage(error) {
 }
 
 function renderView() {
-  const showPolicies = window.location.hash === '#polizas';
-  ui['dashboard-view'].hidden = showPolicies;
-  ui['policies-view'].hidden = !showPolicies;
+  const showDashboard = window.location.hash === '#dashboard';
+  ui['dashboard-view'].hidden = !showDashboard;
+  ui['policies-view'].hidden = showDashboard;
   ui['dashboard-link'].removeAttribute('aria-current');
   ui['policies-link'].removeAttribute('aria-current');
-  ui[showPolicies ? 'policies-link' : 'dashboard-link'].setAttribute('aria-current', 'page');
+  ui[showDashboard ? 'dashboard-link' : 'policies-link'].setAttribute('aria-current', 'page');
 }
 
 function stateCounts() {
@@ -302,6 +307,7 @@ async function loadPolicies(preferredId = selected?.id, updateOverview = true) {
     const preferredIndex = policies.findIndex(policy => policy.id === preferredId);
     pageNumber = Math.floor(Math.max(preferredIndex, 0) / pageSize) + 1;
     renderPolicies();
+    ui.credentials.hidden = true;
     connection('ready', 'API conectada');
     await selectPolicy(policies[preferredIndex] ?? policies[0] ?? null);
   } catch (error) {
@@ -312,7 +318,7 @@ async function loadPolicies(preferredId = selected?.id, updateOverview = true) {
     renderPolicies();
     await selectPolicy(null);
     ui['list-empty'].textContent = 'No se pudieron cargar las pólizas.';
-    connection('error', error.status === 401 ? 'Clave inválida' : 'API sin respuesta');
+    if (error.status !== 401) connection('error', 'API sin respuesta');
     notify('error', 'Error al consultar pólizas', errorMessage(error));
   } finally {
     await pendingOverview;
@@ -513,7 +519,7 @@ ui['add-risk'].addEventListener('click', newRisk);
 ui['key-form'].addEventListener('submit', event => {
   event.preventDefault();
   apiKey = ui['api-key'].value;
-  ui['key-form'].closest('details').open = false;
+  ui.credentials.open = false;
   ui.notice.hidden = true;
   ui.trace.hidden = true;
   loadPolicies();
